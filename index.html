@@ -1,0 +1,165 @@
+<html>  
+	<body onload="playDefaultVideo()">
+		<meta charset="utf-8">
+		<head>
+			<title>AntoniJankowski PIPIM Project</title>
+			<link rel="stylesheet" type="text/css" href="main.css">
+			<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+				<!-- Or if you want a more recent canary version -->
+				<!-- <script src="https://cdn.jsdelivr.net/npm/hls.js@canary"></script> -->
+			<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+		</head>
+			<h1>Antoni Jankowski - WebPlayer PiPIM miniProject</h1>
+			<hr>
+			<video id="video" controls></video>
+
+			</br>
+			<select name="video-selector" id="video-selector" onchange="chooseVideo()">
+				<option value="0">x36xhzz</option>
+				<option value="1">telequebec.tc</option>
+				<option value="2">akamai.hd</option>
+				<option value="3">streambox.fr</option>
+				<option value="4">bitdash-a</option>
+			</select>
+
+			</br>
+			Choose quality bits/s:
+			<div id="level-selector"></div>
+
+			<div id="level-info">
+				Level Info below:
+				<table id="level-table">
+				</table>
+			</div>
+
+			Segments URLs:
+			<div id="segments-url"></div>
+
+  </body>
+</html>
+
+<script type="text/javascript">
+	var video = document.getElementById('video');
+	var lvl_select = document.getElementById('level-selector');
+	var table = document.getElementById('level-table');
+	var segments = document.getElementById('segments-url');
+	var hls;
+	var video_properties = ["url", "level", "bitrate", "height", "width", "videoCodec", "audioCodec"]
+
+	const videos_to_choose = [
+		'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+		'https://mnmedias.api.telequebec.tv/m3u8/29880.m3u8',
+		'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
+		'http://www.streambox.fr/playlists/test_001/stream.m3u8',
+		'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8',
+	]
+
+	function playDefaultVideo()
+	{
+		loadVideo(videos_to_choose[0]);
+	}
+
+
+	function chooseVideo() 
+	{
+		let videoNr = document.getElementById("video-selector").value;
+		loadVideo(videos_to_choose[videoNr])
+	}
+
+	function loadVideo(videoSrc)
+	{
+	  	if (Hls.isSupported()) {
+			hls = new Hls();
+			hls.loadSource(videoSrc);
+			hls.attachMedia(video);
+			hls.on(Hls.Events.MANIFEST_PARSED, function() {
+				video.play();
+			});	
+
+			clearSegments();	
+			hls.on(Hls.Events.MANIFEST_LOADED, onManifestLoaded);
+			hls.on(Hls.Events.LEVEL_SWITCHED, onLevelSwitched);
+			hls.on(Hls.Events.FRAG_PARSING_DATA, onFragParsing);
+
+		}
+
+		else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+			video.src = videos_to_choose[0];
+			video.addEventListener('loadedmetadata', function() {
+				video.play();
+			});
+		}
+  	}
+	
+	function clearSegments()
+	{
+		while(segments.firstChild && segments.removeChild(segments.firstChild));
+	}
+
+	function onManifestLoaded(event, data)
+	{
+		console.log(event);
+		console.log(data.levels.length);
+		var levelsLen = data.levels.length;
+		while(lvl_select.firstChild && lvl_select.removeChild(lvl_select.firstChild));
+
+		data.levels.forEach(function (level, index) {
+			console.log(level)
+			var level_btn = document.createElement("BUTTON");
+			level_btn.value = index; 
+			level_btn.addEventListener('click', chooseLevel);
+			level_btn.innerHTML = level.bitrate;
+			lvl_select.appendChild(level_btn);
+		});
+	}
+
+	function chooseLevel()
+	{
+		index = this.value;
+		console.log(index);
+		hls.loadlevel = index;
+		hls.currentLevel = index;
+	}
+
+	function onLevelSwitched(event, data)
+	{
+		console.log(event);
+		console.log(data.level);
+		deleteAllRows();
+		
+		for (const property of video_properties)
+		{
+			addRow(property, hls.levels[data.level][property]);
+		}
+	}
+
+	function onFragParsing(event, data)
+	{
+		console.log(event);
+		console.log(data.frag._url);
+		
+		var newText = document.createTextNode(data.frag._url);
+		segments.appendChild(newText);
+
+		var enter = document.createElement("br");
+		segments.appendChild(enter);
+	}
+
+	function addRow(key, val)
+	{
+		console.log("addRow");
+		var row = table.insertRow(0);
+		var cell1 = row.insertCell(0);
+		var cell2 = row.insertCell(1);
+		cell1.innerHTML = key;
+		cell2.innerHTML = val;
+	}
+
+	function deleteAllRows()
+	{
+		for(var i = table.rows.length - 1; i >= 0; i--)
+		{
+			table.deleteRow(i);
+		}
+	}
+</script>
