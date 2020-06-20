@@ -30,7 +30,7 @@ I know it's ugly, I'm no UI designer, pardon me.
 ## How to launch the WebPlayerAJ?
 
 I recommend using simple python server to display the project.
-It's enough for the purpose and It's the one I use.
+It's enough for this purpose and It's the one I use.
 
 ```sh
 $ python3 -m http.server
